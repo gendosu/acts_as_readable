@@ -17,12 +17,17 @@ module ActsAsReadable
   module ClassMethods
     # Find all the readings of the readables by the user in a single SQL query and cache them in the readables for use in the view.
     def cache_readings_for(readables, user)
-      readings = Reading.where(:readable_type => name, :readable_id => readables.collect(&:id), :user_id => user.id)
+      readings = []
+      Reading.where(:readable_type => name, :readable_id => readables.collect(&:id), :user_id => user.id).each do |reading|
+        readings[reading.readable_id] = reading
+      end
 
       for readable in readables
-        readable.cached_reading = readings.detect {|reading| reading.readable_id == readable.id} || false
+        readable.cached_reading = readings[readable.id] || false
       end
-    end        
+      
+      return readables
+    end    
   end
 
   module InstanceMethods
