@@ -2,7 +2,7 @@ module ActsAsReadable
   module ActMethod  
     def acts_as_readable
       has_many :readings, :as => :readable
-      has_many :users_who_read, :through => :readings, :source => :user
+      has_many :readers, :through => :readings, :source => :user
 
       scope :read_by, lambda {|user| where("#{user.id} IN (SELECT user_id FROM readings WHERE readable_type = '#{name}' AND readable_id = #{table_name}.id)") }
       scope :unread_by, lambda {|user| where("#{user.id} NOT IN (SELECT user_id FROM readings WHERE readable_type = '#{name}' AND readable_id = #{table_name}.id)") }
@@ -54,7 +54,7 @@ module ActsAsReadable
     def read_by?(user)
       case cached_reading
       when nil
-        users_who_read.where(:id => user.id).exists?
+        readers.loaded? ? readers.include?(user) : readers.exists?(user)
       else
         cached_reading
       end
