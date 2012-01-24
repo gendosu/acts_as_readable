@@ -4,4 +4,13 @@ class Reading < ActiveRecord::Base
   
   validates_presence_of :user_id, :readable_id, :readable_type
   validates_uniqueness_of :user_id, :scope => [:readable_id, :readable_type]
+  validates_inclusion_of :state, :in => [:read, :unread, 'read', 'unread']
+  
+  def read?
+    self.state == 'read'
+  end
+  
+  def unread?
+    self.state == 'unread'
+  end
 end

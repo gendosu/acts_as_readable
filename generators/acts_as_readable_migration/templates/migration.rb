@@ -4,6 +4,7 @@ class ActsAsReadableMigration < ActiveRecord::Migration
       t.string :readable_type
       t.integer :readable_id
       t.integer :user_id
+      t.string :state, :null => false, :default => :read
       t.timestamps
     end
   end
