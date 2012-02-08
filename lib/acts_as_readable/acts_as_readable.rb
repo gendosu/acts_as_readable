@@ -9,29 +9,30 @@ module ActsAsReadable
       has_many :readings, :as => :readable
       has_many :readers, :through => :readings, :source => :user, :conditions => {:readings => {:state => 'read'}}
 
-      scope :read_by, lambda {|user| ActsAsReadable::HelperMethods.outer_join_readings(self).where(ActsAsReadable::HelperMethods.read_conditions(self, user))}
-      scope :unread_by, lambda {|user| ActsAsReadable::HelperMethods.outer_join_readings(self).where(ActsAsReadable::HelperMethods.unread_conditions(self, user))}
+      scope :read_by, lambda {|user| ActsAsReadable::HelperMethods.outer_join_readings(self, user).where(ActsAsReadable::HelperMethods.read_conditions(self, user))}
+      scope :unread_by, lambda {|user| ActsAsReadable::HelperMethods.outer_join_readings(self, user).where(ActsAsReadable::HelperMethods.unread_conditions(self, user))}
 
       extend ActsAsReadable::ClassMethods
       include ActsAsReadable::InstanceMethods
     end
   end
-  
+
   module HelperMethods
     def self.read_conditions(readable_class, user)
       ["(readable_type IS NULL AND COALESCE(#{readable_class.table_name}.updated_at < ?, TRUE)) OR (readable_type IS NOT NULL AND COALESCE(readings.updated_at < ?, TRUE)) OR (readings.state = 'read')", all_read_at(readable_class, user), all_read_at(readable_class, user)]
     end
-    
+
     def self.unread_conditions(readable_class, user)
+      # IF there is no reading and it has been updated since we last read all OR there is an unreading and we haven't read all since then
       ["(readable_type IS NULL AND COALESCE(#{readable_class.table_name}.updated_at > ?, TRUE)) OR (readings.state = 'unread' AND COALESCE(readings.updated_at > ?, TRUE))", all_read_at(readable_class, user), all_read_at(readable_class, user)]
     end
-    
+
     def self.all_read_at(readable_class, user)
       user[readable_class.acts_as_readable_options[:cache]]
     end
 
-    def self.outer_join_readings(readable_class)
-      Reading.joins("LEFT OUTER JOIN readings ON readable_type = '#{readable_class.name}' AND readable_id = #{readable_class.table_name}.id")
+    def self.outer_join_readings(readable_class, user)
+      Reading.joins("LEFT OUTER JOIN readings ON readings.readable_type = '#{readable_class.name}' AND readings.readable_id = #{readable_class.table_name}.id AND readings.user_id = #{user.id}")
     end        
   end
 
@@ -46,10 +47,10 @@ module ActsAsReadable
       for readable in readables
         readable.cached_reading = readings[readable.id] || false
       end
-      
+
       return readables
     end
-    
+
     # Mark all records as read by the user
     # If a :cache option has been set in acts_as_readable, a timestamp will be updated on the user instead of creating individual readings for each record
     def read_by!(user)
@@ -74,17 +75,19 @@ module ActsAsReadable
 
     def read_by!(user)
       # Find an existing reading and update the record so we can know when the thing was first read, and the last time we read it
-      reading = Reading.find_or_initialize_by_user_id_and_readable_id_and_readable_type(:user_id => user.id, :readable_id => self.id, :readable_type => self.class.name)
-      reading.updated_at = Time.now
+      reading = Reading.find_or_initialize_by_user_id_and_readable_id_and_readable_type(user.id, self.id, self.class.name)
+      reading.updated_at = Time.now # Explicitly set the read time to now in order to force a save in case we haven't changed anything else about the reading
       reading.state = :read
       reading.save!
     rescue ActiveRecord::RecordNotUnique
       # Database-level uniqueness constraint failed.
-      return true
+      return self
     end
 
     def unread_by!(user)
-      Reading.update_all({:state => :unread}, :user_id => user.id, :readable_id => self.id, :readable_type => self.class.name)
+      reading = Reading.find_or_initialize_by_user_id_and_readable_id_and_readable_type(user.id, self.id, self.class.name)
+      reading.state = :unread
+      reading.save!
     end
 
     def read_by?(user)
@@ -100,9 +103,9 @@ module ActsAsReadable
         user[acts_as_readable_options[:cache]].to_f > self.updated_at.to_f
       end
     end
-    
+
     def unread_by?(user)
-      !read_by(user)
+      !read_by?(user)
     end    
   end
 end
