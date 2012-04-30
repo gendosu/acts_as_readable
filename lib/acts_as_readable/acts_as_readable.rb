@@ -104,9 +104,22 @@ module ActsAsReadable
       end
     end
 
-    def unread_by?(user)
-      !read_by?(user)
-    end    
+    # Returns true if the user has read this at least once, but it has been updated since the last reading
+    def updated?(user)
+      read_by?(user) && !latest_update_read_by?(user)
+    end
+
+    def latest_update_read_by?(user)
+      if cached_reading
+        cached_reading.updated_at > self.updated_at
+      elsif cached_reading == false
+        user[acts_as_readable_options[:cache]].to_f > self.updated_at.to_f
+      elsif reading = readings.where(:user_id => user.id, :state => :read).first
+        reading.updated_at > self.updated_at
+      else
+        user[acts_as_readable_options[:cache]].to_f > self.updated_at.to_f
+      end
+    end
   end
 end
 

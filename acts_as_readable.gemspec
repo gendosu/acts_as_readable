@@ -5,4 +5,7 @@ Gem::Specification.new do |s|
   s.homepage = 'http://github.com/culturecode/acts_as_readable'
   s.summary = "Allows records to be marked as readable. Optimized for bulk, 'mark all as read' operations"
   s.authors = ['Nicholas Jakobsen', 'Ryan Wallace']
+
+  s.require_path = "lib"
+  s.files = Dir.glob("{generators,lib,spec}/**/*") + %w(README.rdoc)
 end
