@@ -28,7 +28,8 @@ module ActsAsReadable
     end
 
     def self.all_read_at(readable_class, user)
-      user[readable_class.acts_as_readable_options[:cache]]
+      cache_column = readable_class.acts_as_readable_options[:cache]
+      user[cache_column] if user.respond_to?(cache_column)
     end
 
     def self.outer_join_readings(readable_class, user)
@@ -54,10 +55,9 @@ module ActsAsReadable
     # Mark all records as read by the user
     # If a :cache option has been set in acts_as_readable, a timestamp will be updated on the user instead of creating individual readings for each record
     def read_by!(user)
-      if acts_as_readable_options[:cache] && user.respond_to?("#{acts_as_readable_options[:cache]}=")
+      if user.has_attribute?(acts_as_readable_options[:cache])
         Reading.delete_all(:user_id => user.id, :readable_type => name)
-        user[acts_as_readable_options[:cache]] = Time.now
-        user.save!
+        user.update_attributes! acts_as_readable_options[:cache] => Time.now
       else
         unread_by(user).find_each do |record|
           record.read_by!(user)
