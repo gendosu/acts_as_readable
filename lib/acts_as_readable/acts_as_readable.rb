@@ -28,8 +28,7 @@ module ActsAsReadable
     end
 
     def self.all_read_at(readable_class, user)
-      cache_column = readable_class.acts_as_readable_options[:cache]
-      user[cache_column] if user.respond_to?(cache_column)
+      user[readable_class.acts_as_readable_options[:cache]] if readable_class.acts_as_readable_options[:cache]
     end
 
     def self.outer_join_readings(readable_class, user)
