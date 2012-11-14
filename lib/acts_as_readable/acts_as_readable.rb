@@ -56,8 +56,7 @@ module ActsAsReadable
     def read_by!(user)
       if user.has_attribute?(acts_as_readable_options[:cache])
         Reading.delete_all(:user_id => user.id, :readable_type => name)
-        user[acts_as_readable_options[:cache]] = Time.now
-        user.save!
+        user.update_column(acts_as_readable_options[:cache], Time.now)
       else
         unread_by(user).find_each do |record|
           record.read_by!(user)
