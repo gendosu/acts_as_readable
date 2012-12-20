@@ -6,7 +6,8 @@ module ActsAsReadable
       class_attribute :acts_as_readable_options
       self.acts_as_readable_options = options
 
-      has_many :readings, :as => :readable
+      User.has_many :readings, :dependent => :delete_all
+      has_many :readings, :as => :readable, :dependent => :delete_all
       has_many :readers, :through => :readings, :source => :user, :conditions => {:readings => {:state => 'read'}}
 
       scope :read_by, lambda {|user| ActsAsReadable::HelperMethods.outer_join_readings(self, user).where(ActsAsReadable::HelperMethods.read_conditions(self, user))}
