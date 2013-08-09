@@ -6,12 +6,13 @@ module ActsAsReadable
       class_attribute :acts_as_readable_options
       self.acts_as_readable_options = options
 
-      User.has_many :readings, :dependent => :delete_all
-      has_many :readings, :as => :readable, :dependent => :delete_all
-      has_many :readers, :through => :readings, :source => :user, :conditions => {:readings => {:state => 'read'}}
+      User.has_many :readings,  :dependent => :delete_all
 
-      scope :read_by, lambda {|user| ActsAsReadable::HelperMethods.outer_join_readings(self, user).where(ActsAsReadable::HelperMethods.read_conditions(self, user))}
-      scope :unread_by, lambda {|user| ActsAsReadable::HelperMethods.outer_join_readings(self, user).where(ActsAsReadable::HelperMethods.unread_conditions(self, user))}
+      has_many :readings,       :as => :readable, :dependent => :delete_all
+      has_many :readers,        lambda { where :readings => {:state => 'read'} }, :through => :readings, :source => :user
+
+      scope :read_by,           lambda {|user| ActsAsReadable::HelperMethods.outer_join_readings(all, user).where(ActsAsReadable::HelperMethods.read_conditions(self, user))}
+      scope :unread_by,         lambda {|user| ActsAsReadable::HelperMethods.outer_join_readings(all, user).where(ActsAsReadable::HelperMethods.unread_conditions(self, user))}
 
       extend ActsAsReadable::ClassMethods
       include ActsAsReadable::InstanceMethods
@@ -32,8 +33,8 @@ module ActsAsReadable
       user[readable_class.acts_as_readable_options[:cache]] if readable_class.acts_as_readable_options[:cache]
     end
 
-    def self.outer_join_readings(readable_class, user)
-      Reading.joins("LEFT OUTER JOIN readings ON readings.readable_type = '#{readable_class.name}' AND readings.readable_id = #{readable_class.table_name}.id AND readings.user_id = #{user.id}")
+    def self.outer_join_readings(scope, user)
+      scope.joins("LEFT OUTER JOIN readings ON readings.readable_type = '#{scope.model.name}' AND readings.readable_id = #{scope.model.table_name}.id AND readings.user_id = #{user.id}")
     end        
   end
 
@@ -75,7 +76,7 @@ module ActsAsReadable
 
     def read_by!(user)
       # Find an existing reading and update the record so we can know when the thing was first read, and the last time we read it
-      reading = Reading.find_or_initialize_by_user_id_and_readable_id_and_readable_type(user.id, self.id, self.class.name)
+      reading = Reading.find_or_initialize_by(:user_id => user.id, :readable_id => self.id, :readable_type => self.class.name)
       reading.updated_at = Time.now # Explicitly set the read time to now in order to force a save in case we haven't changed anything else about the reading
       reading.state = :read
       reading.save!
@@ -85,7 +86,7 @@ module ActsAsReadable
     end
 
     def unread_by!(user)
-      reading = Reading.find_or_initialize_by_user_id_and_readable_id_and_readable_type(user.id, self.id, self.class.name)
+      reading = Reading.find_or_initialize_by(:user_id => user.id, :readable_id => self.id, :readable_type => self.class.name)
       reading.state = :unread
       reading.save!
     end
