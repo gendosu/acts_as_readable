@@ -95,13 +95,13 @@ module ActsAsReadable
       if cached_reading
         cached_reading.read?
       elsif cached_reading == false
-        user[acts_as_readable_options[:cache]].to_f > self.updated_at.to_f
+        user[acts_as_readable_options[:cache]].to_f > self.created_at.to_f
       elsif readers.loaded?
         readers.include?(user)
       elsif reading = readings.find_by_user_id(user.id)
         reading.read?
       else
-        user[acts_as_readable_options[:cache]].to_f > self.updated_at.to_f
+        user[acts_as_readable_options[:cache]].to_f > self.created_at.to_f
       end
     end
 
@@ -112,11 +112,11 @@ module ActsAsReadable
 
     def latest_update_read_by?(user)
       if cached_reading
-        cached_reading.updated_at > self.updated_at
+        cached_reading.read? && cached_reading.updated_at > self.updated_at
       elsif cached_reading == false
         user[acts_as_readable_options[:cache]].to_f > self.updated_at.to_f
-      elsif reading = readings.where(:user_id => user.id, :state => :read).first
-        reading.updated_at > self.updated_at
+      elsif reading = readings.find_by_user_id(user.id)
+        reading.read? && reading.updated_at > self.updated_at
       else
         user[acts_as_readable_options[:cache]].to_f > self.updated_at.to_f
       end
