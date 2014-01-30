@@ -2,7 +2,7 @@ $LOAD_PATH << File.join(File.dirname(__FILE__), '..', 'lib')
 require 'active_record'
 require 'acts_as_readable'
 
-ActiveRecord::Base.establish_connection(:adapter => "postgresql", :database => "acts_as_readable_test")
+ActiveRecord::Base.establish_connection(:adapter => "postgresql", :database => "acts_as_readable_test") # Not using sqlite3 for testing because of its ridiculous boolean handling
 
 ActiveRecord::Schema.define(:version => 0) do
   create_table :users, :force => true do |t|
@@ -26,4 +26,13 @@ end
 
 class Comment < ActiveRecord::Base
   acts_as_readable :cache => :comments_read_at
+end
+
+
+def debug_queries
+  logger = ActiveRecord::Base.logger
+  ActiveRecord::Base.logger = Logger.new(STDOUT)
+  yield
+ensure
+  ActiveRecord::Base.logger = logger
 end

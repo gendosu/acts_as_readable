@@ -1,5 +1,5 @@
 module ActsAsReadable
-  module ActMethod  
+  module ActMethod
     # OPTIONS
     # :cache  => the name under which to cache timestamps for a "mark all as read" action to avoid the need to actually create readings for each record marked as read
     def acts_as_readable(options = {})
@@ -21,12 +21,18 @@ module ActsAsReadable
 
   module HelperMethods
     def self.read_conditions(readable_class, user)
-      ["(readable_type IS NULL AND COALESCE(#{readable_class.table_name}.updated_at < ?, TRUE)) OR (readable_type IS NOT NULL AND COALESCE(readings.updated_at < ?, TRUE)) OR (readings.state = 'read')", all_read_at(readable_class, user), all_read_at(readable_class, user)]
+      ["(readable_type IS NULL     AND COALESCE(#{readable_class.table_name}.updated_at < :all_read_at, :true))
+     OR (readable_type IS NOT NULL AND COALESCE(readings.updated_at < :all_read_at, :true))
+     OR (readings.state = 'read')",
+     :all_read_at => all_read_at(readable_class, user), :true => true]
     end
 
     def self.unread_conditions(readable_class, user)
       # IF there is no reading and it has been updated since we last read all OR there is an unreading and we haven't read all since then
-      ["(readable_type IS NULL AND COALESCE(#{readable_class.table_name}.updated_at > ?, TRUE)) OR (readings.state = 'unread' AND COALESCE(readings.updated_at > ?, TRUE))", all_read_at(readable_class, user), all_read_at(readable_class, user)]
+      ["(readings.state IS NULL    AND COALESCE(#{readable_class.table_name}.updated_at > :all_read_at, :true))
+     OR (readings.state = 'unread' AND COALESCE(readings.updated_at > :all_read_at, :true))
+     OR (readings.state = 'read'   AND COALESCE(#{readable_class.table_name}.updated_at > readings.updated_at, :true))",
+     :all_read_at => all_read_at(readable_class, user), :true => true]
     end
 
     def self.all_read_at(readable_class, user)
@@ -35,7 +41,7 @@ module ActsAsReadable
 
     def self.outer_join_readings(scope, user)
       scope.joins("LEFT OUTER JOIN readings ON readings.readable_type = '#{scope.model.name}' AND readings.readable_id = #{scope.model.table_name}.id AND readings.user_id = #{user.id}")
-    end        
+    end
   end
 
   module ClassMethods
