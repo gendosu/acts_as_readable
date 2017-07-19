@@ -6,7 +6,7 @@ module ActiveRecord
 
       source_root File.expand_path("../templates", __FILE__)
 
-      def copy_initializer
+      def copy_migration
         migration_template 'migration.rb', "db/migrate/#{file_name}", migration_version: migration_version
       end
 
