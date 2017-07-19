@@ -2,15 +2,12 @@ require 'rails/generators/active_record'
 
 module ActiveRecord
   module Generators
-    class ActsAsReadableGenerator < ActiveRecord::Generators::Base
+    class ActsAsReadableMigrationGenerator < ActiveRecord::Generators::Base
 
       source_root File.expand_path("../templates", __FILE__)
 
       def copy_initializer
-      end
-
-      def manifest
-          migration_template 'migration.rb', "db/migrate/#{file_name}", migration_version: migration_version
+        migration_template 'migration.rb', "db/migrate/#{file_name}", migration_version: migration_version
       end
 
       def file_name
