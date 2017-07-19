@@ -1,4 +1,4 @@
-class ActsAsReadableMigration < ActiveRecord::Migration
+class ActsAsReadableMigration < ActiveRecord::Migration<%= migration_version %>
   def self.up
     create_table :readings do |t|
       t.string :readable_type
@@ -7,10 +7,10 @@ class ActsAsReadableMigration < ActiveRecord::Migration
       t.string :state, :null => false, :default => :read
       t.timestamps
     end
-    
+
     add_index :readings, [:readable_id, :readable_type, :user_id], :unique => true
   end
-  
+
   def self.down
     drop_table :readings
   end
